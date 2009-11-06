@@ -14,23 +14,44 @@ begin
     Cucumber::Rake::Task.new({:ok => 'db:test:prepare'}, 'Run features that should pass') do |t|
       t.binary = vendored_cucumber_binary
       t.fork = true # You may get faster startup if you set this to false
-      t.cucumber_opts = "--color --tags ~@wip --strict --format #{ENV['CUCUMBER_FORMAT'] || 'pretty'}"
+      t.profile = 'default'
     end
-
+    
     Cucumber::Rake::Task.new({:wip => 'db:test:prepare'}, 'Run features that are being worked on') do |t|
       t.binary = vendored_cucumber_binary
       t.fork = true # You may get faster startup if you set this to false
-      t.cucumber_opts = "--color --tags @wip:2 --wip --format #{ENV['CUCUMBER_FORMAT'] || 'pretty'}"
+      t.profile = 'wip'
     end
-
-    desc 'Run all features'
+    
+    desc 'Run all non-selenium features'
     task :all => [:ok, :wip]
+    
+    namespace :selenium do
+      Cucumber::Rake::Task.new({:ok => 'db:test:prepare'}, 'Run features that should pass') do |t|
+        t.binary = vendored_cucumber_binary
+        t.fork = true # You may get faster startup if you set this to false
+        t.profile = 'selenium'
+      end
+      
+      Cucumber::Rake::Task.new({:wip => 'db:test:prepare'}, 'Run features that are being worked on') do |t|
+        t.binary = vendored_cucumber_binary
+        t.fork = true # You may get faster startup if you set this to false
+        t.profile = 'selenium_wip'
+      end
+      
+      desc 'Run all selenium features'
+      task :all => [:ok, :wip]
+    end
+    
+    desc 'Alias for selenium:ok'
+    task :selenium => 'selenium:ok'
   end
+  
   desc 'Alias for cucumber:ok'
   task :cucumber => 'cucumber:ok'
-
+  
   task :default => :cucumber
-
+  
   task :features => :cucumber do
     STDERR.puts "*** The 'features' task is deprecated. See rake -T cucumber ***"
   end

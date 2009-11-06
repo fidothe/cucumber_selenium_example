@@ -8,18 +8,29 @@ ENV["RAILS_ENV"] ||= "cucumber"
 require File.expand_path(File.dirname(__FILE__) + '/../../config/environment')
 require 'cucumber/rails/world'
 
-# If you set this to true, each scenario will run in a database transaction.
-# You can still turn off transactions on a per-scenario basis, simply tagging 
-# a feature or scenario with the @no-txn tag. 
+# Ben Mabey's database_cleaner provides the mechanism for automatically 
+# putting our test DB in a known state without requiring transactions in all
+# cases, so we can safely turn use_transaction_fixtures off. 
 #
-# If you set this to false, transactions will be off for all scenarios,
-# regardless of whether you use @no-txn or not.
-#
-# Beware that turning transactions off will leave data in your database 
-# after each scenario, which can lead to hard-to-debug failures in 
-# subsequent scenarios. If you do this, we recommend you create a Before
-# block that will explicitly put your database in a known state.
-Cucumber::Rails::World.use_transactional_fixtures = true
+# The @no-txn tag will have no effect now.
+require 'database_cleaner'
+require 'database_cleaner/cucumber'
+
+Cucumber::Rails::World.use_transactional_fixtures = false
+
+# Set up Selenium / not Selenium settings now
+case ENV["cucumber_mode"]
+when "selenium"
+  webrat_mode = :selenium
+  db_clean_strategy = :truncation
+else
+  webrat_mode = :rails
+  db_clean_strategy = :transaction
+end
+
+# We use transactions for Webrat + Rails integration test and truncation for Selenium
+DatabaseCleaner.strategy = db_clean_strategy
+
 
 # If you set this to false, any error raised from within your app will bubble 
 # up to your step definition and out to cucumber unless you catch it somewhere
@@ -30,7 +41,10 @@ Cucumber::Rails::World.use_transactional_fixtures = true
 # pages, more or less in the same way your application would behave in the
 # default production environment. It's not recommended to do this for all
 # of your scenarios, as this makes it hard to discover errors in your application.
-ActionController::Base.allow_rescue = false
+
+## I set this to true, in order to preserve the behaviour I expect to see (404, 401 et al)
+## And to ensure that UX flow around errors can be tested
+ActionController::Base.allow_rescue = true
 
 require 'cucumber'
 # Comment out the next line if you don't want Cucumber Unicode support
@@ -41,7 +55,31 @@ require 'cucumber/rails/rspec'
 require 'webrat'
 require 'webrat/core/matchers' 
 Webrat.configure do |config|
-  config.mode = :rails
+  config.mode = webrat_mode
+  # I have a separate Cucumber DB, which means I can run rspec and cucumber stuff simultaneously
+  # (e.g. through Autotest) without them yanking the DB out from under each other
+  #config.application_environment = :cucumber
+  # However, this means you need to duplicate the Rails rake tasks for DB setup, which is a real pain.
+  # If you're careful not to run them simultaneously you'll be fine
+  config.application_environment = :test
   config.open_error_files = false # Set to true if you want error pages to pop up in the browser
+  
+  # This key allows the scripting of controls like File upload controls in Selenium
+  # (the security model otherwise forbids it). You probably want this.
+  config.selenium_browser_key = "*chrome"
 end
 
+if ENV["cucumber_mode"] == "selenium"
+  # Provide the attach_file method for Selenium sessions too.
+  module Webrat
+    class SeleniumSession
+      def attach_file(field_locator, path, content_type = nil)
+        fill_in(field_locator, :with => path)
+      end
+    end
+  end
+  
+  # this is necessary to have webrat "wait_for" the response body to be available
+  # when writing steps that match against the response body returned by selenium
+  World(Webrat::Selenium::Matchers)
+end

@@ -1,0 +1,4 @@
+default:      --color --tags ~@selenium,~@wip       --format pretty
+wip:          --color --tags @wip:2           --wip --format pretty
+selenium:     --color --tags @selenium              --format pretty cucumber_mode=selenium
+selenium_wip: --color --tags @selenium,@wip:2 --wip --format pretty cucumber_mode=selenium
