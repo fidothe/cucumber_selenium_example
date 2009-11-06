@@ -66,7 +66,12 @@ Webrat.configure do |config|
   
   # This key allows the scripting of controls like File upload controls in Selenium
   # (the security model otherwise forbids it). You probably want this.
-  config.selenium_browser_key = "*chrome"
+  browser_key = "*chrome"
+  
+  # special browser script iff we're running on Snow Leopard
+  browser_key = "*chrome ./script/selenium-firefox" unless (`uname -a` =~ /Darwin Kernel Version 10/).nil?
+  
+  config.selenium_browser_key = browser_key
 end
 
 if ENV["cucumber_mode"] == "selenium"
