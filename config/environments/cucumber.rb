@@ -24,4 +24,7 @@ config.gem 'webrat',      :lib => false,        :version => '>=0.5.3' unless Fil
 config.gem 'rspec',       :lib => false,        :version => '>=1.2.9' unless File.directory?(File.join(Rails.root, 'vendor/plugins/rspec'))
 config.gem 'rspec-rails', :lib => false,        :version => '>=1.2.9' unless File.directory?(File.join(Rails.root, 'vendor/plugins/rspec-rails'))
 
-config.gem 'selenium-client', :lib => false, :version => '=1.2.17'
+config.gem 'selenium-client',  :lib => false, :version => '=1.2.17'
+config.gem 'bmabey-database_cleaner', :lib => false, :source => 'http://gems.github.com' # for now:
+# this will become just plain database_cleaner after the gemcutter.org / rubygems.org / gems.rubyforge.org 
+# shenanigans are done with.
